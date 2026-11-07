@@ -61,3 +61,6 @@ The frontend sidebar sections are defined in `client/src/sections.js`. Add a sec
 ## Not verified
 
 The code was written without running it (package installation is off in this environment). Run `npm install` in each folder and test the flow before relying on it.
+
+
+> Auto-deploy: pushes to `main` are deployed to Vercel from GitHub.
