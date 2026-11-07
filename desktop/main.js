@@ -9,8 +9,9 @@ const path = require('path');
 const fs = require('fs');
 
 // ---------- server address ----------
-// Order: NEXUS_URL environment variable, then the saved setting, then this computer's server
-const DEFAULT_URL = 'http://localhost:5000';
+// Order: NEXUS_URL environment variable, then the saved setting, then the default above
+// The deployed Nexus Work site. Settings → Server address can change it.
+const DEFAULT_URL = 'https://nexus-work-lac.vercel.app';
 const configFile = () => path.join(app.getPath('userData'), 'config.json');
 
 function readConfig() {
