@@ -298,6 +298,13 @@ function Settings({ user, setUser }) {
           {err && <span className="err">{err}</span>}
         </div>
       </form>
+      <div className="card download-card">
+        <div>
+          <b>Desktop app for Windows</b>
+          <div className="muted">Tracks time automatically with screenshots and activity counts. Install once, then sign in with your Nexus account.</div>
+        </div>
+        <a className="btn primary" href="https://github.com/moshiur-dev/nexus-work/releases/latest/download/Nexus-Tracker-Setup-1.0.0.exe" download>Download (Windows, 82 MB)</a>
+      </div>
       <Members user={user} />
       <TwoFactor user={user} setUser={setUser} />
       <div className="card muted">Billing and SSO are not connected yet.</div>

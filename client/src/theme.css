@@ -354,3 +354,9 @@ th { background: #fafafb; }
   .shots.big .shot { width: calc(50% - 4px); }
   .shots.big .shot img { width: 100%; height: auto; aspect-ratio: 16 / 9; }
 }
+
+/* ---------- desktop download card in Settings ---------- */
+.download-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.download-card .muted { margin-top: 4px; font-size: 13px; max-width: 560px; }
+.download-card .btn { text-decoration: none; }
+@media (max-width: 600px) { .download-card .btn { width: 100%; text-align: center; } }
