@@ -1,0 +1,13 @@
+# The desktop app is built on its own; it is not part of the web deploy
+desktop/
+# Files the running app writes (screenshots, recordings, attachments)
+server/uploads/
+# Installed packages are rebuilt on Vercel
+node_modules/
+client/node_modules/
+server/node_modules/
+# Local secrets and test data
+.env
+.env.*
+TEST_ACCOUNT.txt
+.vercel/
