@@ -1,0 +1,63 @@
+{
+  "name": "nexus-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nexus Work desktop app with automatic time tracking",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "selftest": "electron . --selftest",
+    "icon": "node scripts/make-icon.js",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.5"
+  },
+  "author": "Nexus Work",
+  "build": {
+    "appId": "com.nexuswork.tracker",
+    "productName": "Nexus Tracker",
+    "copyright": "Nexus Work",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.html",
+      "settings.js",
+      "settings-preload.js",
+      "build/icon.png",
+      "package.json"
+    ],
+    "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nexus Tracker",
+      "artifactName": "Nexus-Tracker-Setup-${version}.${ext}"
+    }
+  }
+}

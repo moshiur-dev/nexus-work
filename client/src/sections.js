@@ -1,0 +1,51 @@
+// Each sidebar section maps to an item `kind` on the server, plus the extra fields its form shows.
+// `extra` fields are stored in item.data. `icon` is a name from components/Icon.jsx.
+export const SECTIONS = [
+  { id: 'inbox', label: 'Inbox', icon: 'inbox', kind: 'notification', title: 'Inbox', createLabel: 'Add notification',
+    extra: [{ key: 'from', label: 'From' }] },
+  { id: 'chat', label: 'Chat', icon: 'chat', kind: 'message', title: 'Chat', createLabel: 'Send message',
+    extra: [{ key: 'channel', label: 'Channel', default: 'General' }] },
+  { id: 'docs', label: 'Docs', icon: 'doc', kind: 'doc', title: 'Docs', createLabel: 'New doc',
+    extra: [{ key: 'body', label: 'Content', multiline: true }] },
+  { id: 'dashboards', label: 'Dashboards', icon: 'dashboard', kind: 'dashboard', title: 'Dashboards', createLabel: 'New dashboard',
+    extra: [{ key: 'description', label: 'Description' }] },
+  { id: 'whiteboards', label: 'Whiteboards', icon: 'whiteboard', kind: 'whiteboard', title: 'Whiteboards', createLabel: 'New whiteboard',
+    extra: [{ key: 'description', label: 'Notes' }] },
+  { id: 'forms', label: 'Forms', icon: 'form', kind: 'form', title: 'Forms', createLabel: 'New form',
+    extra: [] },
+  { id: 'goals', label: 'Goals', icon: 'target', kind: 'goal', title: 'Goals', createLabel: 'New goal',
+    extra: [{ key: 'target', label: 'Target', type: 'number' }, { key: 'progress', label: 'Progress', type: 'number' }] },
+  { id: 'timesheets', label: 'Time tracking', icon: 'clock', kind: 'time', title: 'Time tracking', createLabel: 'Log time',
+    extra: [{ key: 'hours', label: 'Hours', type: 'number' }, { key: 'date', label: 'Date', type: 'date' }] },
+  { id: 'clips', label: 'Clips', icon: 'film', kind: 'clip', title: 'Clips', createLabel: 'Add clip',
+    extra: [{ key: 'url', label: 'Link' }] },
+  { id: 'meetings', label: 'Meetings', icon: 'mic', kind: 'meeting', title: 'Meetings', createLabel: 'Add meeting',
+    extra: [{ key: 'when', label: 'When', type: 'datetime-local' }, { key: 'notes', label: 'Notes', multiline: true }] },
+  { id: 'artifacts', label: 'AI Artifacts', icon: 'sparkle', kind: 'artifact', title: 'AI Artifacts', createLabel: 'New artifact',
+    extra: [{ key: 'description', label: 'Description' }] },
+  { id: 'skills', label: 'AI Skills', icon: 'bulb', kind: 'skill', title: 'AI Skills', createLabel: 'New skill',
+    extra: [{ key: 'description', label: 'What it does' }] },
+  { id: 'agents', label: 'AI Agents', icon: 'bot', kind: 'agent', title: 'AI Agents', createLabel: 'New agent',
+    extra: [{ key: 'description', label: 'Role' }] },
+  { id: 'automations', label: 'Automations', icon: 'bolt', kind: 'automation', title: 'Automations', createLabel: 'New automation',
+    extra: [
+      { key: 'trigger', label: 'When', type: 'select', default: 'task_completed',
+        options: [{ value: 'task_completed', label: 'A task is completed' }] },
+      { key: 'enabled', label: 'Enabled', type: 'select', default: 'true',
+        options: [{ value: 'true', label: 'Enabled' }, { value: 'false', label: 'Disabled' }] },
+    ] },
+  { id: 'tags', label: 'Tags', icon: 'tag', kind: 'tag', title: 'Tags', createLabel: 'New tag',
+    extra: [{ key: 'color', label: 'Color', default: '#7b68ee' }] },
+  { id: 'customFields', label: 'Custom fields', icon: 'sliders', kind: 'customField', title: 'Custom fields', createLabel: 'New field',
+    extra: [{ key: 'type', label: 'Type', default: 'text' }] },
+  { id: 'taskTypes', label: 'Task types', icon: 'layers', kind: 'taskType', title: 'Task types', createLabel: 'New task type',
+    extra: [{ key: 'description', label: 'Description' }] },
+  { id: 'teams', label: 'Teams', icon: 'users', kind: 'team', title: 'Teams', createLabel: 'Create team',
+    extra: [{ key: 'members', label: 'Members (comma separated)' }] },
+  { id: 'integrations', label: 'Apps & integrations', icon: 'plug', kind: 'integration', title: 'Apps & integrations', createLabel: 'Connect app',
+    extra: [{ key: 'service', label: 'Service' }] },
+];
+
+// Where each section shows up: the icon rail on the far left, the main sidebar list, or under "More"
+export const RAIL = ['chat', 'docs', 'dashboards', 'whiteboards', 'forms', 'timesheets'];
+export const SIDE = ['inbox', 'timesheets', 'goals', 'meetings', 'clips'];
