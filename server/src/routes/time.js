@@ -283,13 +283,13 @@ router.post('/recordings', requirePermission('write'), express.raw({ type: 'vide
 // When Google Drive is off the answer is { local: true } and the browser uses the plain upload below instead.
 router.post('/recordings/session', requirePermission('write'), validate(z.object({ task: z.string() })), async (req, res, next) => {
   try {
-    if (!storage.drive.enabled()) return res.json({ local: true });
+    if (!storage.remoteEnabled()) return res.json({ local: true });
     if (badId(req.body.task)) return res.status(404).json({ message: 'Task not found' });
     const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
     if (!task) return res.status(404).json({ message: 'Task not found' });
     const rel = storage.newRecordingPath(crypto.randomUUID());
-    const uploadUrl = await storage.drive.createUploadSession(rel);
-    res.json({ local: false, uploadUrl, rel });
+    const session = await storage.createUploadSession(rel, 'video/webm');
+    res.json({ local: false, ...session, rel });
   } catch (err) {
     next(err);
   }
@@ -300,7 +300,7 @@ router.post('/recordings/finish', requirePermission('write'), validate(z.object(
     if (badId(req.body.task) || !storage.isRecordingPath(req.body.rel)) return res.status(400).json({ message: 'Unknown recording' });
     const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    const meta = await storage.drive.exists(req.body.rel);
+    const meta = await storage.exists(req.body.rel);
     if (!meta || !meta.size) return res.status(400).json({ message: 'The recording was not received' });
     const m = await Media.create({
       workspace: req.workspaceId, task: task._id, user: req.userId, kind: 'recording',

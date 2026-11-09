@@ -880,6 +880,12 @@ function Attachments({ task, canWrite }) {
 async function uploadBigFile(taskId, file) {
   const s = await api.attachmentSession(taskId, file.name, file.size);
   if (s.local) return api.uploadAttachment(taskId, file);
+  if (s.provider === 'b2') {
+    // Backblaze B2: the whole file in one request to the signed address
+    const res = await fetch(s.uploadUrl, { method: 'PUT', body: file });
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    return api.attachmentFinish(taskId, { rel: s.rel, name: file.name, size: file.size });
+  }
   const PIECE = 256 * 1024 * 12;
   for (let start = 0; start < file.size; start += PIECE) {
     const end = Math.min(start + PIECE, file.size);

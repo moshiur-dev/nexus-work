@@ -30,6 +30,12 @@ const desktop = typeof window !== 'undefined' ? window.nexusDesktop || null : nu
 async function uploadRecordingFile(taskId, blob, seconds) {
   const s = await api.recordingSession(taskId);
   if (s.local) return api.uploadRecording(taskId, blob, seconds);
+  if (s.provider === 'b2') {
+    // Backblaze B2: the whole file in one request to the signed address
+    const res = await fetch(s.uploadUrl, { method: 'PUT', body: blob });
+    if (!res.ok) throw new Error(`Recording upload failed (${res.status})`);
+    return api.recordingFinish({ task: taskId, rel: s.rel, seconds });
+  }
   const PIECE = 256 * 1024 * 12; // Google Drive wants pieces that are a multiple of 256 KB
   for (let start = 0; start < blob.size; start += PIECE) {
     const end = Math.min(start + PIECE, blob.size);

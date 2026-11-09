@@ -11,6 +11,10 @@ export const SETTINGS = {
   GOOGLE_CLIENT_SECRET: { label: 'Google Drive: client secret', secret: true },
   GOOGLE_REFRESH_TOKEN: { label: 'Google Drive: refresh token', secret: true },
   GOOGLE_DRIVE_FOLDER: { label: 'Google Drive: folder name (default: NexusWork)', secret: false },
+  B2_KEY_ID: { label: 'Backblaze B2: key ID', secret: false },
+  B2_APPLICATION_KEY: { label: 'Backblaze B2: application key', secret: true },
+  B2_BUCKET: { label: 'Backblaze B2: bucket name', secret: false },
+  B2_ENDPOINT: { label: 'Backblaze B2: endpoint (e.g. s3.us-east-005.backblazeb2.com)', secret: false },
   CLIENT_ORIGIN: { label: 'Web app address', secret: false },
 };
 
