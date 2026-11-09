@@ -1,15 +1,13 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as storage from './storage.js';
 import Comment from '../models/Comment.js';
 import TimeEntry from '../models/TimeEntry.js';
 import Media from '../models/Media.js';
 
 // UPLOAD_DIR can point somewhere else (on Vercel only /tmp is writable, and it is not kept between requests)
-export const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../uploads');
+export { UPLOAD_DIR } from './storage.js';
 
 export async function removeFiles(media) {
-  await Promise.all(media.map((m) => fs.unlink(path.join(UPLOAD_DIR, m.file)).catch(() => {})));
+  await storage.removeAll(media);
 }
 
 // Removes everything that hangs off the given tasks: comments, time entries, screenshots and recordings

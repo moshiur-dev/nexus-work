@@ -15,7 +15,8 @@ import mongoose from 'mongoose';
 import Comment from '../models/Comment.js';
 import User from '../models/User.js';
 import Media from '../models/Media.js';
-import { removeTaskData, removeFiles, UPLOAD_DIR } from '../services/cleanup.js';
+import { removeTaskData, removeFiles } from '../services/cleanup.js';
+import * as storage from '../services/storage.js';
 import { statusesOf } from '../services/statuses.js';
 import { notify } from '../services/notify.js';
 import { publish } from '../services/events.js';
@@ -287,9 +288,8 @@ router.post('/:id/attachments', requirePermission('write'), express.raw({ type: 
       return res.status(400).json({ message: 'A task can have at most 50 attachments' });
     }
     const image = IMAGE_TYPES.find((t) => buf.length > 12 && t.ok(buf));
-    const file = `attachments/${crypto.randomUUID()}.${image ? image.ext : 'bin'}`;
-    await fs.mkdir(path.join(UPLOAD_DIR, 'attachments'), { recursive: true });
-    await fs.writeFile(path.join(UPLOAD_DIR, file), buf);
+    const rel = `attachments/${crypto.randomUUID()}.${image ? image.ext : 'bin'}`;
+    const file = await storage.save(rel, buf, image ? image.type : 'application/octet-stream');
     const m = await Media.create({
       workspace: req.workspaceId, task: task._id, user: req.userId, kind: 'attachment', file,
       contentType: image ? image.type : 'application/octet-stream', size: buf.length, name: cleanName(req.query.name),
@@ -326,9 +326,8 @@ router.get('/attachments/:aid/file', requirePermission('read'), async (req, res,
       'Content-Disposition': `${isImage ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(m.name || 'file')}`,
       'Cache-Control': 'private, max-age=3600',
     });
-    res.sendFile(path.join(UPLOAD_DIR, m.file), (err) => {
-      if (err && !res.headersSent) res.status(404).json({ message: 'File not found' });
-    });
+    const ok = await storage.send(res, m, { 'X-Content-Type-Options': 'nosniff' });
+    if (ok === false && !res.headersSent) res.status(404).json({ message: 'File not found' });
   } catch (err) {
     next(err);
   }

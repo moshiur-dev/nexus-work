@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import express from 'express';
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
@@ -12,7 +10,8 @@ import Task from '../models/Task.js';
 import TimeEntry from '../models/TimeEntry.js';
 import Media from '../models/Media.js';
 import User from '../models/User.js';
-import { UPLOAD_DIR, removeFiles } from '../services/cleanup.js';
+import * as storage from '../services/storage.js';
+import { removeFiles } from '../services/cleanup.js';
 
 // Mounted at /api/time: timers, activity counts, screenshots and screen recordings
 const router = Router();
@@ -29,24 +28,18 @@ const SIGNATURES = {
   'video/webm': { ext: 'webm', ok: (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
 };
 
+// Returns the stored name (OneDrive or local), or null when the bytes are not a real image or video
 async function saveFile(buf, contentType, folder) {
   const sig = SIGNATURES[contentType];
   if (!sig || !Buffer.isBuffer(buf) || buf.length < 8 || !sig.ok(buf)) return null;
-  const name = `${folder}/${crypto.randomUUID()}.${sig.ext}`;
-  await fs.mkdir(path.join(UPLOAD_DIR, folder), { recursive: true });
-  await fs.writeFile(path.join(UPLOAD_DIR, name), buf);
-  return name;
+  const rel = `${folder}/${crypto.randomUUID()}.${sig.ext}`;
+  await storage.save(rel, buf, contentType);
+  return storage.storedName(rel);
 }
 
 async function sendFile(res, media) {
-  res.set({
-    'Content-Type': media.contentType,
-    'X-Content-Type-Options': 'nosniff',
-    'Cache-Control': 'private, max-age=3600',
-  });
-  res.sendFile(path.join(UPLOAD_DIR, media.file), (err) => {
-    if (err && !res.headersSent) res.status(404).json({ message: 'File not found' });
-  });
+  const ok = await storage.send(res, media, { 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=3600' });
+  if (ok === false && !res.headersSent) res.status(404).json({ message: 'File not found' });
 }
 
 // Closes a running entry and adds its time to the task
@@ -280,6 +273,40 @@ router.post('/recordings', requirePermission('write'), express.raw({ type: 'vide
     });
     const me = await User.findById(req.userId, 'name').lean();
     res.status(201).json({ data: { ...m.toObject(), userName: me?.name } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Recordings sent straight to OneDrive (large files) ----------
+// 1) the browser asks for an upload session; 2) it sends the video in chunks to OneDrive; 3) it confirms here.
+// When OneDrive is off the answer is { local: true } and the browser uses the plain upload below instead.
+router.post('/recordings/session', requirePermission('write'), validate(z.object({ task: z.string() })), async (req, res, next) => {
+  try {
+    if (!storage.onedrive.enabled()) return res.json({ local: true });
+    if (badId(req.body.task)) return res.status(404).json({ message: 'Task not found' });
+    const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    const rel = storage.newRecordingPath(crypto.randomUUID());
+    const uploadUrl = await storage.onedrive.createUploadSession(rel);
+    res.json({ local: false, uploadUrl, rel });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/recordings/finish', requirePermission('write'), validate(z.object({ task: z.string(), rel: z.string(), seconds: z.number().int().min(0).max(86400) })), async (req, res, next) => {
+  try {
+    if (badId(req.body.task) || !storage.isRecordingPath(req.body.rel)) return res.status(400).json({ message: 'Unknown recording' });
+    const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+    const meta = await storage.onedrive.exists(req.body.rel);
+    if (!meta || !meta.size) return res.status(400).json({ message: 'The recording was not received' });
+    const m = await Media.create({
+      workspace: req.workspaceId, task: task._id, user: req.userId, kind: 'recording',
+      file: storage.storedName(req.body.rel), contentType: 'video/webm', size: meta.size, seconds: req.body.seconds,
+    });
+    res.status(201).json({ data: { ...m.toObject(), file: undefined, userName: (await User.findById(req.userId, 'name').lean())?.name } });
   } catch (err) {
     next(err);
   }

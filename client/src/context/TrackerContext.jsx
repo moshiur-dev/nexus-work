@@ -25,6 +25,24 @@ function nextShotDelay() {
 // Set by the Nexus Tracker desktop app (desktop/preload.js); missing in a normal browser
 const desktop = typeof window !== 'undefined' ? window.nexusDesktop || null : null;
 
+// Large recordings: the server gives an OneDrive upload session and the browser sends the video in pieces.
+// Without OneDrive the server says { local: true } and the video goes through the server as before.
+async function uploadRecordingFile(taskId, blob, seconds) {
+  const s = await api.recordingSession(taskId);
+  if (s.local) return api.uploadRecording(taskId, blob, seconds);
+  const PIECE = 320 * 1024 * 10; // OneDrive wants pieces that are a multiple of 320 KB
+  for (let start = 0; start < blob.size; start += PIECE) {
+    const end = Math.min(start + PIECE, blob.size);
+    const res = await fetch(s.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Range': `bytes ${start}-${end - 1}/${blob.size}` },
+      body: blob.slice(start, end),
+    });
+    if (!res.ok && res.status !== 202) throw new Error(`Recording upload failed (${res.status})`);
+  }
+  return api.recordingFinish({ task: taskId, rel: s.rel, seconds });
+}
+
 export const emit = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
 
 export function TrackerProvider({ children }) {
@@ -298,7 +316,7 @@ export function TrackerProvider({ children }) {
       if (!blob.size) return;
       setUploading(true);
       try {
-        await api.uploadRecording(task._id, blob, Math.round((Date.now() - startedAt) / 1000));
+        await uploadRecordingFile(task._id, blob, Math.round((Date.now() - startedAt) / 1000));
         emit('nexus:recordings-changed', { taskId: task._id });
       } catch (err) {
         setNotice(`Recording upload failed: ${err.message}`);

@@ -151,6 +151,8 @@ export const api = {
   listRecordings: (taskId) => request(`/time/recordings?task=${taskId}`),
   uploadRecording: (taskId, blob, seconds) =>
     requestRaw(`/time/recordings?task=${taskId}&seconds=${seconds}`, { method: 'POST', body: blob, type: 'video/webm' }).then((r) => r.json()),
+  recordingSession: (task) => request('/time/recordings/session', { method: 'POST', body: { task } }),
+  recordingFinish: (payload) => request('/time/recordings/finish', { method: 'POST', body: payload }),
   recordingBlob: (id) => requestRaw(`/time/recordings/${id}/file`).then((r) => r.blob()),
   deleteRecording: (id) => request(`/time/recordings/${id}`, { method: 'DELETE' }),
 
