@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { api } from '../api.js';
 import AuthLayout from '../components/AuthLayout.jsx';
 import { isEmail, passwordScore } from '../utils/validate.js';
 
 const STRENGTH_COLORS = ['#dc2626', '#d97706', '#eab308', '#16a34a', '#16a34a'];
 
 export default function Register() {
-  const { register } = useAuth();
   const [form, setForm] = useState({ name: '', email: '', password: '', workspaceName: '', terms: false });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const onChange = (e) => {
     const { name, type, checked, value } = e.target;
@@ -32,7 +32,8 @@ export default function Register() {
     setLoading(true);
     setServerError('');
     try {
-      await register(form);
+      await api.register(form);
+      setSent(true);
     } catch (err) {
       // Server validation errors come back with field details
       if (err.details) {
@@ -46,6 +47,15 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  if (sent) {
+    return (
+      <AuthLayout title="Check your email" subtitle={'We sent a confirmation link to ' + form.email + '.'}>
+        <p className="center">Open the link in that email to create your account. The link is valid for 24 hours.</p>
+        <p className="center mt"><Link to="/login" className="link">Back to log in</Link></p>
+      </AuthLayout>
+    );
+  }
 
   const score = passwordScore(form.password);
 

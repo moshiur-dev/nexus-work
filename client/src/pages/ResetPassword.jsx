@@ -20,7 +20,7 @@ export default function ResetPassword() {
     if (password !== confirm) return setError('Passwords do not match');
     setLoading(true);
     try {
-      await api.resetPassword(token, password);
+      await api.resetPassword(token, password, confirm);
       setDone(true);
     } catch (err) {
       setError(err.message);

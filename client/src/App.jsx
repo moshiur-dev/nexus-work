@@ -5,6 +5,7 @@ import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
+import Verify from './pages/Verify.jsx';
 import Workspace from './pages/Workspace.jsx';
 import { TrackerProvider } from './context/TrackerContext.jsx';
 
@@ -36,7 +37,8 @@ export default function App() {
       <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
       <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
       <Route path="/reset-password" element={<GuestOnly><ResetPassword /></GuestOnly>} />
-      <Route path="/invite" element={<Protected><AcceptInvite /></Protected>} />
+      <Route path="/invite" element={<AcceptInvite />} />
+      <Route path="/verify" element={<Verify />} />
       <Route path="/*" element={<Protected><TrackerProvider><Workspace /></TrackerProvider></Protected>} />
     </Routes>
   );

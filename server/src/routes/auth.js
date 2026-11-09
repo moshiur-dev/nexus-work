@@ -10,6 +10,13 @@ import { requireAuth } from '../middleware/auth.js';
 import User from '../models/User.js';
 import { registerUser, loginUser, signTokens } from '../services/auth.service.js';
 import { sendMail } from '../services/mail.js';
+import PendingSignup from '../models/PendingSignup.js';
+import Invite from '../models/Invite.js';
+import Membership from '../models/Membership.js';
+import Workspace from '../models/Workspace.js';
+
+const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
+const WS_COOKIE = { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 24 * 365 };
 
 const { authenticator } = otplib;
 const router = Router();
@@ -38,7 +45,15 @@ const forgotSchema = z.object({ email: emailSchema });
 const resetSchema = z.object({
   token: z.string().min(10),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-});
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] });
+
+const joinSchema = z.object({
+  token: z.string().min(10),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, { message: 'Passwords do not match', path: ['confirmPassword'] });
 const otpSchema = z.object({ code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code') });
 
 function setRefreshCookie(res, userId) {
@@ -46,13 +61,88 @@ function setRefreshCookie(res, userId) {
   res.cookie(REFRESH_COOKIE, refreshToken, cookieOpts);
 }
 
-// POST /api/auth/register
+// POST /api/auth/register: emails a link. The account is created when the link is opened.
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
-    const user = await registerUser(req.body);
+    if (await User.exists({ email: req.body.email })) {
+      return res.status(409).json({ message: 'An account with this email already exists' });
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(req.body.password, 12);
+    await PendingSignup.findOneAndUpdate(
+      { email: req.body.email },
+      { name: req.body.name, workspaceName: req.body.workspaceName, passwordHash, tokenHash: sha(token), expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      { upsert: true }
+    );
+    const base = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+    await sendMail({
+      to: req.body.email,
+      subject: 'Confirm your Nexus Work account',
+      text: `Open this link to confirm your email and create your account (valid for 24 hours):\n${base}/verify?token=${token}\n\nIf you did not sign up, you can ignore this email.`,
+    });
+    res.status(202).json({ pending: true, message: 'We sent a link to your email. Open it to finish creating your account.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/verify { token }: creates the account from the emailed link and logs it in
+router.post('/verify', validate(z.object({ token: z.string().min(10) })), async (req, res, next) => {
+  try {
+    const pending = await PendingSignup.findOne({ tokenHash: sha(req.body.token), expiresAt: { $gt: new Date() } }).select('+passwordHash');
+    if (!pending) return res.status(400).json({ message: 'This link is invalid or has expired. Sign up again.' });
+    if (await User.exists({ email: pending.email })) {
+      await pending.deleteOne();
+      return res.status(409).json({ message: 'An account with this email already exists. Log in instead.' });
+    }
+    const user = await User.create({ name: pending.name, email: pending.email, passwordHash: pending.passwordHash, workspaceName: pending.workspaceName });
+    await pending.deleteOne();
     const { accessToken } = signTokens(user._id);
     setRefreshCookie(res, user._id);
     res.status(201).json({ user: user.toSafeJSON(), accessToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/invite?token= : what an invite is for (no login needed)
+router.get('/invite', async (req, res, next) => {
+  try {
+    const inv = await Invite.findOne({ tokenHash: sha(String(req.query.token || '')), expiresAt: { $gt: new Date() } });
+    if (!inv) return res.status(400).json({ message: 'This invite is invalid or has expired' });
+    const ws = await Workspace.findById(inv.workspace, 'name').lean();
+    res.json({
+      email: inv.email,
+      role: inv.role,
+      workspaceName: ws?.name || 'the workspace',
+      hasAccount: Boolean(await User.exists({ email: inv.email })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/invite/join { token, name, password, confirmPassword }: a new person sets a password and joins
+router.post('/invite/join', validate(joinSchema), async (req, res, next) => {
+  try {
+    const inv = await Invite.findOne({ tokenHash: sha(req.body.token), expiresAt: { $gt: new Date() } });
+    if (!inv) return res.status(400).json({ message: 'This invite is invalid or has expired' });
+    if (await User.exists({ email: inv.email })) {
+      return res.status(409).json({ message: 'This email already has an account. Log in, then open the invite link again.' });
+    }
+    const ws = await Workspace.findById(inv.workspace, 'name').lean();
+    const user = await User.create({
+      name: req.body.name,
+      email: inv.email,
+      passwordHash: await bcrypt.hash(req.body.password, 12),
+      workspaceName: ws?.name || 'My Workspace',
+    });
+    await Membership.create({ workspace: inv.workspace, user: user._id, role: inv.role });
+    await Invite.deleteOne({ _id: inv._id });
+    const { accessToken } = signTokens(user._id);
+    setRefreshCookie(res, user._id);
+    res.cookie('ws', String(inv.workspace), WS_COOKIE);
+    res.status(201).json({ user: user.toSafeJSON(), accessToken, workspaceName: ws?.name || '' });
   } catch (err) {
     next(err);
   }

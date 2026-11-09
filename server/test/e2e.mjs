@@ -33,13 +33,30 @@ function check(name, cond, extra = '') {
   else { failures++; console.log(`FAIL  ${name} ${extra}`); }
 }
 
+// Sign-up sends a link by email. Locally the mail is written to the server log, so set API_LOG to that log file.
+async function mailedToken(email) {
+  const fs = await import('node:fs');
+  for (let i = 0; i < 20; i++) {
+    const text = fs.readFileSync(process.env.API_LOG, 'utf8');
+    const blocks = text.split('[mail:dev]').slice(1).filter((b) => b.includes(email));
+    const m = blocks.length && blocks[blocks.length - 1].match(/token=([a-f0-9]{64})/);
+    if (m) return m[1];
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return null;
+}
+
 async function register(email) {
   const s = session();
   const r = await s.call('POST', '/auth/register', { body: { name: 'Tester', email, password: 'password123', workspaceName: 'Test Workspace' } });
-  return { s, token: r.data.accessToken, status: r.status };
+  if (r.status !== 202) return { s, token: r.data.accessToken, status: r.status };
+  const token = await mailedToken(email);
+  const v = await s.call('POST', '/auth/verify', { body: { token } });
+  return { s, token: v.data.accessToken, status: v.status };
 }
 
 async function main() {
+  if (!process.env.API_LOG) { console.log('SKIP: sign-up now needs the emailed link. Run with API_LOG=<path to the server log>.'); process.exit(0); }
   const health = await fetch(BASE.replace(/\/api$/, '') + '/api/health').then((r) => r.json()).catch(() => null);
   if (!health?.ok) { console.log('Server is not reachable at', BASE); process.exit(1); }
   check('health endpoint responds', health.ok === true);
