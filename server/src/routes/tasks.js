@@ -301,6 +301,45 @@ router.post('/:id/attachments', requirePermission('write'), express.raw({ type: 
   }
 });
 
+// ---------- Large attachments straight to OneDrive ----------
+// Over 4 MB Vercel cannot take the file through this server, so the browser sends it to OneDrive in pieces.
+// When OneDrive is off the answer is { local: true } and the normal upload above is used.
+const MAX_ATTACHMENT = 25 * 1024 * 1024;
+router.post('/:id/attachments/session', requirePermission('write'), validate(z.object({ name: z.string().max(200), size: z.number().int().min(1).max(MAX_ATTACHMENT) })), async (req, res, next) => {
+  try {
+    if (!storage.onedrive.enabled()) return res.json({ local: true });
+    const task = await findTask(req, res);
+    if (!task) return;
+    if ((await Media.countDocuments({ task: task._id, kind: 'attachment' })) >= 50) {
+      return res.status(400).json({ message: 'A task can have at most 50 attachments' });
+    }
+    const rel = `attachments/${crypto.randomUUID()}.bin`;
+    const uploadUrl = await storage.onedrive.createUploadSession(rel);
+    res.json({ local: false, uploadUrl, rel });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/attachments/finish', requirePermission('write'), validate(z.object({ rel: z.string().max(100), name: z.string().max(200), size: z.number().int().min(1).max(MAX_ATTACHMENT) })), async (req, res, next) => {
+  try {
+    if (!/^attachments\/[0-9a-f-]{36}\.bin$/.test(req.body.rel)) return res.status(400).json({ message: 'Unknown upload' });
+    const task = await findTask(req, res);
+    if (!task) return;
+    const meta = await storage.onedrive.exists(req.body.rel);
+    if (!meta || meta.size !== req.body.size) return res.status(400).json({ message: 'The file was not received in full' });
+    // Sent as a download only (never shown inline), since its contents were not checked by the server
+    const m = await Media.create({
+      workspace: req.workspaceId, task: task._id, user: req.userId, kind: 'attachment',
+      file: storage.storedName(req.body.rel), contentType: 'application/octet-stream', size: req.body.size, name: cleanName(req.body.name),
+    });
+    const { file: _f, ...data } = m.toObject();
+    res.status(201).json({ data: { ...data, userName: await actorName(req) } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id/attachments', requirePermission('read'), async (req, res, next) => {
   try {
     const task = await findTask(req, res);

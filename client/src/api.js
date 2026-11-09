@@ -156,6 +156,8 @@ export const api = {
   recordingBlob: (id) => requestRaw(`/time/recordings/${id}/file`).then((r) => r.blob()),
   deleteRecording: (id) => request(`/time/recordings/${id}`, { method: 'DELETE' }),
 
+  attachmentSession: (taskId, name, size) => request(`/tasks/${taskId}/attachments/session`, { method: 'POST', body: { name, size } }),
+  attachmentFinish: (taskId, payload) => request(`/tasks/${taskId}/attachments/finish`, { method: 'POST', body: payload }),
   listAttachments: (taskId) => request(`/tasks/${taskId}/attachments`),
   uploadAttachment: (taskId, file) =>
     requestRaw(`/tasks/${taskId}/attachments?name=${encodeURIComponent(file.name)}`, { method: 'POST', body: file, type: 'application/octet-stream' }).then((r) => r.json()),

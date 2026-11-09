@@ -818,7 +818,7 @@ function Attachments({ task, canWrite }) {
     setBusy(true);
     for (const f of list) {
       if (f.size > 25 * 1024 * 1024) { setError(`${f.name} is larger than 25 MB`); continue; }
-      try { await api.uploadAttachment(task._id, f); } catch (err) { setError(`${f.name}: ${err.message}`); }
+      try { if (f.size > 4 * 1024 * 1024) await uploadBigFile(task._id, f); else await api.uploadAttachment(task._id, f); } catch (err) { setError(`${f.name}: ${err.message}`); }
     }
     setBusy(false);
     load();
@@ -874,6 +874,19 @@ function Attachments({ task, canWrite }) {
       {error && <div className="err">{error}</div>}
     </section>
   );
+}
+
+// Large files go to OneDrive in pieces (see the server's /attachments/session route)
+async function uploadBigFile(taskId, file) {
+  const s = await api.attachmentSession(taskId, file.name, file.size);
+  if (s.local) return api.uploadAttachment(taskId, file);
+  const PIECE = 320 * 1024 * 10;
+  for (let start = 0; start < file.size; start += PIECE) {
+    const end = Math.min(start + PIECE, file.size);
+    const res = await fetch(s.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${start}-${end - 1}/${file.size}` }, body: file.slice(start, end) });
+    if (!res.ok && res.status !== 202) throw new Error(`Upload failed (${res.status})`);
+  }
+  return api.attachmentFinish(taskId, { rel: s.rel, name: file.name, size: file.size });
 }
 
 function AttachmentThumb({ id, name }) {
