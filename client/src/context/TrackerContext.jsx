@@ -12,14 +12,14 @@ const TrackerContext = createContext(null);
 export const useTracker = () => useContext(TrackerContext);
 
 const FLUSH_MS = 60 * 1000;
-const MIN_SHOT_MS = 5 * 60 * 1000;
-const MAX_SHOT_MS = 10 * 60 * 1000;
+const FIRST_SHOT_MS = 60 * 1000; // the first screenshot comes 1 minute after the timer starts
+const SHOT_EVERY_MS = 5 * 60 * 1000; // then one every 5 minutes
 
 // Development only: localStorage "nexus.shotTestMs" shortens the screenshot gap so it can be tested quickly
-function nextShotDelay() {
+function nextShotDelay(shotsTaken) {
   const test = import.meta.env.DEV && Number(localStorage.getItem('nexus.shotTestMs'));
   if (test > 0) return test;
-  return MIN_SHOT_MS + Math.random() * (MAX_SHOT_MS - MIN_SHOT_MS);
+  return shotsTaken === 0 ? FIRST_SHOT_MS : SHOT_EVERY_MS;
 }
 
 // Set by the Nexus Tracker desktop app (desktop/preload.js); missing in a normal browser
@@ -64,6 +64,7 @@ export function TrackerProvider({ children }) {
   const runningRef = useRef(null);
   const shotStream = useRef(null);
   const shotTimer = useRef(null);
+  const shotsTaken = useRef(0); // screenshots attempted in this timer run (the first one is sooner)
   const recorder = useRef(null);
   const desktopShots = useRef(false); // screenshots come from the desktop app, no share prompt
   const globalRef = useRef(false); // the desktop app counts keys and clicks across the whole computer
@@ -154,6 +155,7 @@ export function TrackerProvider({ children }) {
     shotStream.current?.getTracks().forEach((t) => t.stop());
     shotStream.current = null;
     desktopShots.current = false;
+    shotsTaken.current = 0;
     setShotsOn(false);
   }, []);
 
@@ -180,6 +182,7 @@ export function TrackerProvider({ children }) {
       const stream = shotStream.current;
       const fromDesktop = desktopShots.current;
       if (!entry || (!stream && !fromDesktop)) return;
+      shotsTaken.current += 1;
       try {
         const blob = fromDesktop
           ? new Blob([await desktop.captureScreen()], { type: 'image/jpeg' })
@@ -193,7 +196,7 @@ export function TrackerProvider({ children }) {
         setNotice(`Screenshot failed: ${err.message}`);
       }
       if (shotStream.current || desktopShots.current) scheduleShot();
-    }, nextShotDelay());
+    }, nextShotDelay(shotsTaken.current));
   }, []);
 
   // Asks the browser to share a screen. Returns null if the person cancels.
