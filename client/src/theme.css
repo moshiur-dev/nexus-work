@@ -360,3 +360,16 @@ th { background: #fafafb; }
 .download-card .muted { margin-top: 4px; font-size: 13px; max-width: 560px; }
 .download-card .btn { text-decoration: none; }
 @media (max-width: 600px) { .download-card .btn { width: 100%; text-align: center; } }
+
+/* ---------- super admin settings ---------- */
+.super-admin { display: flex; flex-direction: column; gap: 12px; }
+.sa-head { display: flex; flex-direction: column; gap: 2px; }
+.sa-row { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 8px 16px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.sa-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sa-source { font-size: 12px; color: var(--muted); }
+.sa-source.saved { color: #16a34a; }
+.sa-source.environment { color: #b45309; }
+.sa-input { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.sa-input .in { min-width: 0; flex: 1; }
+.sa-msg { grid-column: 2; font-size: 13px; }
+@media (max-width: 600px) { .sa-row { grid-template-columns: 1fr; } .sa-msg { grid-column: 1; } .sa-input { flex-wrap: wrap; } }

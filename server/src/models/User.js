@@ -15,6 +15,9 @@ const userSchema = new mongoose.Schema(
     // two-factor authentication (TOTP)
     twoFactorSecret: { type: String, select: false },
     twoFactorEnabled: { type: Boolean, default: false },
+
+    // platform super admin: can change server settings from the app
+    isSuperAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -27,6 +30,7 @@ userSchema.methods.toSafeJSON = function () {
     workspaceName: this.workspaceName,
     role: this.role,
     twoFactorEnabled: this.twoFactorEnabled,
+    isSuperAdmin: this.isSuperAdmin || (!!process.env.SUPER_ADMIN_EMAIL && this.email === process.env.SUPER_ADMIN_EMAIL.toLowerCase()),
   };
 };
 

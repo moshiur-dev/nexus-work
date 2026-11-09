@@ -13,6 +13,7 @@ import NewTaskModal from '../components/NewTaskModal.jsx';
 import { TrackerBar } from '../context/TrackerContext.jsx';
 import { HomeView, MyTasksView, InboxView } from '../components/HomeViews.jsx';
 import TimeView from '../components/TimeView.jsx';
+import SuperAdmin from '../components/SuperAdmin.jsx';
 
 const ACTIVE_KEY = 'nexus.active';
 
@@ -305,6 +306,7 @@ function Settings({ user, setUser }) {
         </div>
         <a className="btn primary" href="https://github.com/moshiur-dev/nexus-work/releases/latest/download/Nexus-Tracker-Setup-1.0.0.exe" download>Download (Windows, 82 MB)</a>
       </div>
+      {user.isSuperAdmin && <SuperAdmin />}
       <Members user={user} />
       <TwoFactor user={user} setUser={setUser} />
       <div className="card muted">Billing and SSO are not connected yet.</div>

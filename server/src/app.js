@@ -4,6 +4,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import notificationRoutes from './routes/notifications.js';
 import eventRoutes from './routes/events.js';
+import adminRoutes from './routes/admin.js';
+import * as secrets from './services/secrets.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import itemRoutes from './routes/items.js';
@@ -19,6 +21,8 @@ const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_ORIGIN, credentials: true }));
 app.use(express.json());
+// Keeps the saved server settings fresh (at most once a minute) so every request sees the latest values
+app.use(async (req, res, next) => { try { await secrets.refresh(); } catch { /* keep the last values */ } next(); });
 app.use(cookieParser());
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -32,6 +36,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

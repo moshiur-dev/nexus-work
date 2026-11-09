@@ -169,5 +169,8 @@ export const api = {
   markNotification: (id, read = true) => request(`/notifications/${id}/read`, { method: 'PATCH', body: { read } }),
   markAllNotifications: () => request('/notifications/read-all', { method: 'POST' }),
 
+  adminSettings: () => request('/admin/settings'),
+  adminSetSetting: (key, value) => request(`/admin/settings/${key}`, { method: 'PUT', body: { value } }),
+
   search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
 };

@@ -7,11 +7,13 @@
 //   MS_TENANT                        optional, default "consumers" (personal Microsoft accounts)
 //   ONEDRIVE_FOLDER                  optional, default "NexusWork"
 
+import * as secrets from './secrets.js';
+
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 const LOGIN = (tenant) => `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`;
 
-export const enabled = () => Boolean(process.env.MS_CLIENT_ID && process.env.MS_CLIENT_SECRET && process.env.MS_REFRESH_TOKEN);
-const folder = () => (process.env.ONEDRIVE_FOLDER || 'NexusWork').replace(/^\/+|\/+$/g, '');
+export const enabled = () => Boolean(secrets.get('MS_CLIENT_ID') && secrets.get('MS_CLIENT_SECRET') && secrets.get('MS_REFRESH_TOKEN'));
+const folder = () => (secrets.get('ONEDRIVE_FOLDER') || 'NexusWork').replace(/^\/+|\/+$/g, '');
 
 // Path inside OneDrive for a relative path such as "screenshots/x.jpg"
 const fullPath = (rel) => [folder(), ...rel.split('/')].map(encodeURIComponent).join('/');
@@ -22,13 +24,13 @@ let cached = { token: null, expires: 0 };
 async function accessToken() {
   if (cached.token && Date.now() < cached.expires - 60_000) return cached.token;
   const body = new URLSearchParams({
-    client_id: process.env.MS_CLIENT_ID,
-    client_secret: process.env.MS_CLIENT_SECRET,
+    client_id: secrets.get('MS_CLIENT_ID'),
+    client_secret: secrets.get('MS_CLIENT_SECRET'),
     grant_type: 'refresh_token',
-    refresh_token: process.env.MS_REFRESH_TOKEN,
+    refresh_token: secrets.get('MS_REFRESH_TOKEN'),
     scope: 'Files.ReadWrite offline_access',
   });
-  const res = await fetch(LOGIN(process.env.MS_TENANT || 'consumers'), { method: 'POST', body });
+  const res = await fetch(LOGIN(secrets.get('MS_TENANT') || 'consumers'), { method: 'POST', body });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.access_token) throw new Error(`OneDrive sign-in failed (${data.error || res.status}). Check MS_REFRESH_TOKEN.`);
   cached = { token: data.access_token, expires: Date.now() + data.expires_in * 1000 };
