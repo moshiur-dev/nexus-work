@@ -251,7 +251,9 @@ router.post('/reset-password', validate(resetSchema), async (req, res, next) => 
     user.resetTokenHash = undefined;
     user.resetExpires = undefined;
     await user.save();
-    res.json({ ok: true, message: 'Password updated. You can log in now.' });
+    const { accessToken } = signTokens(user._id);
+    setRefreshCookie(res, user._id);
+    res.json({ ok: true, user: user.toSafeJSON(), accessToken });
   } catch (err) {
     next(err);
   }

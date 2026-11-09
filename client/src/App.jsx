@@ -36,7 +36,7 @@ export default function App() {
       <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
       <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
       <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
-      <Route path="/reset-password" element={<GuestOnly><ResetPassword /></GuestOnly>} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/invite" element={<AcceptInvite />} />
       <Route path="/verify" element={<Verify />} />
       <Route path="/*" element={<Protected><TrackerProvider><Workspace /></TrackerProvider></Protected>} />

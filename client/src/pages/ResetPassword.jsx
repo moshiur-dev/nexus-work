@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../api.js';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { api, setAccessToken } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import AuthLayout from '../components/AuthLayout.jsx';
 
 export default function ResetPassword() {
@@ -9,7 +10,8 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
@@ -20,22 +22,16 @@ export default function ResetPassword() {
     if (password !== confirm) return setError('Passwords do not match');
     setLoading(true);
     try {
-      await api.resetPassword(token, password, confirm);
-      setDone(true);
+      const r = await api.resetPassword(token, password, confirm);
+      setAccessToken(r.accessToken);
+      setUser(r.user);
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-
-  if (done) {
-    return (
-      <AuthLayout title="Password updated" subtitle="You can now log in with your new password.">
-        <p className="center"><Link to="/login" className="link">Go to log in</Link></p>
-      </AuthLayout>
-    );
-  }
 
   return (
     <AuthLayout title="Choose a new password" subtitle="The link expires one hour after it was sent.">
