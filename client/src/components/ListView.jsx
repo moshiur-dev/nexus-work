@@ -876,15 +876,15 @@ function Attachments({ task, canWrite }) {
   );
 }
 
-// Large files go to OneDrive in pieces (see the server's /attachments/session route)
+// Large files go to Google Drive in pieces (see the server's /attachments/session route)
 async function uploadBigFile(taskId, file) {
   const s = await api.attachmentSession(taskId, file.name, file.size);
   if (s.local) return api.uploadAttachment(taskId, file);
-  const PIECE = 320 * 1024 * 10;
+  const PIECE = 256 * 1024 * 12;
   for (let start = 0; start < file.size; start += PIECE) {
     const end = Math.min(start + PIECE, file.size);
     const res = await fetch(s.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${start}-${end - 1}/${file.size}` }, body: file.slice(start, end) });
-    if (!res.ok && res.status !== 202) throw new Error(`Upload failed (${res.status})`);
+    if (!res.ok && res.status !== 308) throw new Error(`Upload failed (${res.status})`);
   }
   return api.attachmentFinish(taskId, { rel: s.rel, name: file.name, size: file.size });
 }

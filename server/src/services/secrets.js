@@ -7,11 +7,10 @@ import AppSetting from '../models/AppSetting.js';
 export const SETTINGS = {
   SMTP_URL: { label: 'Email (SMTP URL)', secret: true },
   MAIL_FROM: { label: 'Email sender address', secret: false },
-  MS_CLIENT_ID: { label: 'OneDrive: client ID', secret: false },
-  MS_CLIENT_SECRET: { label: 'OneDrive: client secret', secret: true },
-  MS_REFRESH_TOKEN: { label: 'OneDrive: refresh token', secret: true },
-  MS_TENANT: { label: 'OneDrive: tenant (default: consumers)', secret: false },
-  ONEDRIVE_FOLDER: { label: 'OneDrive: folder name', secret: false },
+  GOOGLE_CLIENT_ID: { label: 'Google Drive: client ID', secret: false },
+  GOOGLE_CLIENT_SECRET: { label: 'Google Drive: client secret', secret: true },
+  GOOGLE_REFRESH_TOKEN: { label: 'Google Drive: refresh token', secret: true },
+  GOOGLE_DRIVE_FOLDER: { label: 'Google Drive: folder name (default: NexusWork)', secret: false },
   CLIENT_ORIGIN: { label: 'Web app address', secret: false },
 };
 

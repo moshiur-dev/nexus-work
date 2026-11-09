@@ -28,7 +28,7 @@ const SIGNATURES = {
   'video/webm': { ext: 'webm', ok: (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
 };
 
-// Returns the stored name (OneDrive or local), or null when the bytes are not a real image or video
+// Returns the stored name (Google Drive or local), or null when the bytes are not a real image or video
 async function saveFile(buf, contentType, folder) {
   const sig = SIGNATURES[contentType];
   if (!sig || !Buffer.isBuffer(buf) || buf.length < 8 || !sig.ok(buf)) return null;
@@ -278,17 +278,17 @@ router.post('/recordings', requirePermission('write'), express.raw({ type: 'vide
   }
 });
 
-// ---------- Recordings sent straight to OneDrive (large files) ----------
-// 1) the browser asks for an upload session; 2) it sends the video in chunks to OneDrive; 3) it confirms here.
-// When OneDrive is off the answer is { local: true } and the browser uses the plain upload below instead.
+// ---------- Recordings sent straight to Google Drive (large files) ----------
+// 1) the browser asks for an upload session; 2) it sends the video in chunks to Google Drive; 3) it confirms here.
+// When Google Drive is off the answer is { local: true } and the browser uses the plain upload below instead.
 router.post('/recordings/session', requirePermission('write'), validate(z.object({ task: z.string() })), async (req, res, next) => {
   try {
-    if (!storage.onedrive.enabled()) return res.json({ local: true });
+    if (!storage.drive.enabled()) return res.json({ local: true });
     if (badId(req.body.task)) return res.status(404).json({ message: 'Task not found' });
     const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
     if (!task) return res.status(404).json({ message: 'Task not found' });
     const rel = storage.newRecordingPath(crypto.randomUUID());
-    const uploadUrl = await storage.onedrive.createUploadSession(rel);
+    const uploadUrl = await storage.drive.createUploadSession(rel);
     res.json({ local: false, uploadUrl, rel });
   } catch (err) {
     next(err);
@@ -300,7 +300,7 @@ router.post('/recordings/finish', requirePermission('write'), validate(z.object(
     if (badId(req.body.task) || !storage.isRecordingPath(req.body.rel)) return res.status(400).json({ message: 'Unknown recording' });
     const task = await Task.findOne({ _id: req.body.task, workspace: req.workspaceId }, '_id');
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    const meta = await storage.onedrive.exists(req.body.rel);
+    const meta = await storage.drive.exists(req.body.rel);
     if (!meta || !meta.size) return res.status(400).json({ message: 'The recording was not received' });
     const m = await Media.create({
       workspace: req.workspaceId, task: task._id, user: req.userId, kind: 'recording',

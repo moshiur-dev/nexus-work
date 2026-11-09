@@ -140,7 +140,7 @@ export default function TimeView({ members, onOpenTask }) {
       )}
 
       <p className="muted small-note storage-note">
-        Screenshots are saved on the server in <code>server/uploads/screenshots</code>. Only the person who took them and workspace owners and admins can see them.
+        Screenshots are saved in the workspace storage (Google Drive when it is set up). Only the person who took them and workspace owners and admins can see them.
       </p>
       {viewing && <ShotViewer id={viewing} onClose={() => setViewing(null)} />}
     </div>
